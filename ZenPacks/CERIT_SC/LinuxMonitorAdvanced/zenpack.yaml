@@ -1,0 +1,352 @@
+name: ZenPacks.CERIT_SC.LinuxMonitorAdvanced
+
+zProperties:
+  DEFAULTS:
+    category: Linux Advanced Monitor
+  zThresholdLoadOffset:
+    type: string
+    default: 1.3
+  zThresholdMemoryCritical:
+    type: string
+    default: 95
+  zThresholdSwapCritical:
+    type: string
+    default: 85
+  zThresholdFilesystemLow:
+    type: string
+    default: 90
+  zThresholdFilesystemCritical:
+    type: string
+    default: 95
+  zLinuxExpansionCardMapMatchIgnoreTypes:
+    type: lines
+    default:
+      - bridge$
+      - smbus
+      - system peripheral
+      - performance counters
+      - (signal processing|usb) controller
+      - ram memory
+      - ^unknown$
+      - ^pic$
+
+device_classes:
+  /Server/SSH/Linux/Advanced:
+    remove: true
+    zProperties:
+      zCollectorPlugins:
+        - zenoss.cmd.uname
+        - zenoss.cmd.uname_a
+        - zenoss.cmd.df
+        - zenoss.cmd.linux.cpuinfo
+        - zenoss.cmd.linux.memory
+        - zenoss.cmd.linux.ifconfig
+        - zenoss.cmd.linux.netstat_an
+        - zenoss.cmd.linux.netstat_rn
+        - zenoss.cmd.linux.process
+        - zenoss.cmd.linux.process
+      zDeviceTemplates:
+        - Device
+
+    templates:
+      # - Device ----------------------------------------------------------
+      Device:
+        description: Template for gathering performance data via SSH commands.
+        datasources:
+          cpu:
+            type: COMMAND
+            parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.cpu
+            commandTemplate: '/bin/cat /proc/stat'
+            usessh: True
+            eventClass: /Perf/CPU
+            datapoints: #TODO: ID/FORMULA
+              ssCpuUser:
+                rrdtype: DERIVE
+              ssCpuNice:
+                rrdtype: DERIVE
+              ssCpuSystem:
+                rrdtype: DERIVE
+              ssCpuIdle:
+                rrdtype: DERIVE
+              ssCpuWait:
+                rrdtype: DERIVE
+              ssCpuInterrupt:
+                rrdtype: DERIVE
+              ssCpuSoftInterrupt:
+                rrdtype: DERIVE
+              ssCpuSoftSteal:
+                rrdtype: DERIVE
+
+          mem:
+            type: COMMAND
+            parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.mem
+            commandTemplate: '/bin/cat /proc/meminfo'
+            usessh: True
+            eventClass: /Perf/Memory
+            datapoints: #TODO: ID/FORMULA
+              Buffers:
+                rrdtype: GAUGE
+                rrdmin: 0
+              Cached:
+                rrdtype: GAUGE
+                rrdmin: 0
+              MemFree:
+                rrdtype: GAUGE
+                rrdmin: 0
+              MemTotal:
+                rrdtype: GAUGE
+                rrdmin: 0
+              SwapFree:
+                rrdtype: GAUGE
+                rrdmin: 0
+              SwapTotal:
+                rrdtype: GAUGE
+                rrdmin: 0
+
+          uptime:
+            type: COMMAND
+            parser: uptime
+            commandTemplate: '/usr/bin/uptime'
+            usessh: True
+            eventClass: /Perf/CPU
+            datapoints: #TODO: ID/FORMULA
+              laLoadInt1:
+                rrdtype: GAUGE
+              laLoadInt15:
+                rrdtype: GAUGE
+              laLoadInt5:
+                rrdtype: GAUGE
+              sysUpTime:
+                rrdtype: GAUGE
+
+        thresholds: {}
+
+        graphs:
+          CPU Utilization:
+            units: percent +
+            miny: 0
+            graphpoints:
+              System:
+                dpName: cpu_ssCpuSystem
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+              User:
+                dpName: cpu_ssCpuUser
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+              Nice:
+                dpName: cpu_ssCpuNice
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+              Wait:
+                dpName: cpu_ssCpuWait
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+              IRQ:
+                dpName: cpu_ssCpuInterrupt
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+              SoftIRQ:
+                dpName: cpu_ssCpuSoftInterrupt
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+              Steal:
+                dpName: cpu_ssCpuSteal
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+              Idle:
+                dpName: cpu_ssCpuIdle
+                lineType: Area
+                stacked: True
+                format: '%5.1lf%s'
+                color: CCCCCC
+
+          Free Memory:
+            units: Bytes
+            miny: 0
+            graphpoints:
+              Free:
+                dpName: mem_MemFree
+                lineType: Area
+                stacked: True
+              Buffers:
+                dpName: mem_Buffers
+                lineType: Area
+                stacked: True
+              Cached:
+                dpName: mem_Cached
+                lineType: Area
+                stacked: True
+
+          Free Swap:
+            units: Bytes
+            miny: 0
+            graphpoints:
+              Free:
+                dpName: mem_SwapFree
+                lineType: Area
+                stacked: True
+
+          Load Average:
+            miny: 0
+            graphpoints:
+              1 Minute:
+                dpName: uptime_laLoadInt1
+              5 Minutes:
+                dpName: uptime_laLoadInt5
+              15 Minutes:
+                dpName: uptime_laLoadInt15
+
+      # - FileSystem ------------------------------------------------------
+      FileSystem:
+        description: My Filesystem template
+        targetPythonClass: Products.ZenModel.FileSystem
+        datasources:
+          disk:
+            type: COMMAND
+            parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.df
+            commandTemplate: '/bin/df -kP ${here/mount}'
+            usessh: True
+            datapoints: #TODO: ID/FORMULA
+              availBlocks:
+                rrdtype: GAUGE
+              usedBlocks:
+                rrdtype: GAUGE
+
+          idisk:
+            type: COMMAND
+            parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.dfi
+            commandTemplate: '/bin/df -ikP ${here/mount}'
+            usessh: True
+            datapoints: #TODO: ID/FORMULA
+              availableInodes:
+                rrdtype: GAUGE
+              percentInodesUsed:
+                rrdtype: GAUGE
+              totalInodes:
+                rrdtype: GAUGE
+              usedInodes:
+                rrdtype: GAUGE
+
+        thresholds:
+          Greater than 90 percent used:
+            dsnames: [disk_availBlocks]
+            eventClass: /Perf/Filesystem
+            severity: Warning
+            minval: 'here.totalBlocks * 0.10'
+
+        graphs:
+          Block Utilization:
+            units: percentage
+            miny: 0
+            maxy: 100
+            graphpoints:
+              Used:
+                dpName: disk_availBlocks
+                lineType: Area
+                rpn: '${here/totalBlocks},/,1,-,-100,*'
+                includeThresholds: True
+
+          Inode Utilization:
+            units: percentage
+            graphpoints:
+              Percent inodes used: #%
+                dpName: idisk_percentInodesUsed
+              totalInodes:
+                dpName: idisk_totalInodes
+              usedInodes:
+                dpName: idisk_usedInodes
+
+      # - ethernetCsmacd ---------------------------------------------------
+      ethernetCsmacd:
+        description: The SSH Ethernet interface template via cat /proc/net/dev
+        targetPythonClass: Products.ZenModel.IpInterface
+        datasources:
+          net_dev:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.net_dev
+            commandTemplate: '/bin/cat /proc/net/dev'
+            usessh: True
+            datapoints:
+              ifInOctets:
+                rrdtype: DERIVE
+              ifInUcastPackets:
+                rrdtype: DERIVE
+              ifInErrors:
+                rrdtype: DERIVE
+              ifInDropped:
+                rrdtype: DERIVE
+              ifInFifo:
+                rrdtype: DERIVE
+              ifInFrame:
+                rrdtype: DERIVE
+              ifInCompressed:
+                rrdtype: DERIVE
+              ifInMcastPackets:
+                rrdtype: DERIVE
+              ifOutOctets:
+                rrdtype: DERIVE
+              ifOutUcastPackets:
+                rrdtype: DERIVE
+              ifOutErrors:
+                rrdtype: DERIVE
+              ifOutDropped:
+                rrdtype: DERIVE
+              ifOutFifo:
+                rrdtype: DERIVE
+              ifOutCollisions:
+                rrdtype: DERIVE
+              ifOutCarrier:
+                rrdtype: DERIVE
+              ifOutCompressed:
+                rrdtype: DERIVE
+
+        thresholds:
+          High errors:
+            dsnames: ['net_dev_ifInErrors','net_dev_ifOutErrors']
+            eventClass: /Perf/Interface
+            severity: Error
+            maxval: 10
+
+        graphs:
+          Throughput:
+            units: bits/sec
+            miny: 0
+            graphpoints:
+              Inbound:
+                dpName: net_dev_ifInOctets
+                lineType: Area
+                rpn: '8,*'
+              Outbound:
+                dpName: net_dev_ifOutOctets
+                lineType: Line
+                rpn: '8,*'
+
+          Packets:
+            units: packets/sec
+            miny: 0
+            graphpoints:
+              Inbound:
+                dpName: net_dev_ifInUcastPackets
+                lineType: Area
+              Outbound:
+                dpName: net_dev_ifOutUcastPackets
+                lineType: Line
+
+          Errors:
+            units: errors/sec
+            miny: 0
+            graphpoints:
+              Inbound:
+                dpName: net_dev_ifInErrors
+                lineType: Line #?
+              Outbound:
+                dpName: net_dev_ifOutErrors
+                lineType: Line
