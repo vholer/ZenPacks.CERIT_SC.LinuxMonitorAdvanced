@@ -55,11 +55,11 @@ device_classes:
         datasources:
           cpu:
             type: COMMAND
-            parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.cpu
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.stat
             commandTemplate: '/bin/cat /proc/stat'
             usessh: True
             eventClass: /Perf/CPU
-            datapoints: #TODO: ID/FORMULA
+            datapoints:
               ssCpuUser:
                 rrdtype: DERIVE
               ssCpuNice:
@@ -68,6 +68,8 @@ device_classes:
                 rrdtype: DERIVE
               ssCpuIdle:
                 rrdtype: DERIVE
+                aliases:
+                  cpu__pct: "__EVAL:str(len(here.hw.cpus())) + ',/,100,EXC,-'"
               ssCpuWait:
                 rrdtype: DERIVE
               ssCpuInterrupt:
@@ -76,6 +78,20 @@ device_classes:
                 rrdtype: DERIVE
               ssCpuSoftSteal:
                 rrdtype: DERIVE
+              ssCpuGuest:
+                rrdtype: DERIVE
+              ssCpuGuestNice:
+                rrdtype: DERIVE
+              ssCtxt:
+                rrdtype: DERIVE
+              ssProcsNew:
+                rrdtype: DERIVE
+              ssProcsRunning:
+                rrdtype: GAUGE
+                rrdmin: 0
+              ssProcsBlocked:
+                rrdtype: GAUGE
+                rrdmin: 0
 
           mem:
             type: COMMAND
@@ -83,25 +99,37 @@ device_classes:
             commandTemplate: '/bin/cat /proc/meminfo'
             usessh: True
             eventClass: /Perf/Memory
-            datapoints: #TODO: ID/FORMULA
+            datapoints:
               Buffers:
                 rrdtype: GAUGE
                 rrdmin: 0
+                aliases:
+                  memBuffer: NULL
               Cached:
                 rrdtype: GAUGE
                 rrdmin: 0
+                aliases:
+                  memCached: NULL
               MemFree:
                 rrdtype: GAUGE
                 rrdmin: 0
+                aliases:
+                  memoryAvailable__bytes: NULL
               MemTotal:
                 rrdtype: GAUGE
                 rrdmin: 0
+                aliases:
+                  hrMemorySize: NULL
               SwapFree:
                 rrdtype: GAUGE
                 rrdmin: 0
+                aliases:
+                  memAvailSwap: NULL
               SwapTotal:
                 rrdtype: GAUGE
                 rrdmin: 0
+                aliases:
+                  hrSwapSize: NULL
 
           uptime:
             type: COMMAND
@@ -109,13 +137,15 @@ device_classes:
             commandTemplate: '/usr/bin/uptime'
             usessh: True
             eventClass: /Perf/CPU
-            datapoints: #TODO: ID/FORMULA
+            datapoints:
               laLoadInt1:
                 rrdtype: GAUGE
               laLoadInt15:
                 rrdtype: GAUGE
               laLoadInt5:
                 rrdtype: GAUGE
+                aliases:
+                  loadAverage5min: NULL
               sysUpTime:
                 rrdtype: GAUGE
 
@@ -167,6 +197,14 @@ device_classes:
                 stacked: True
                 format: '%5.1lf%s'
                 color: CCCCCC
+              Guest:
+                dpName: cpu_ssCpuGuest
+                lineType: Line
+                format: '%5.1lf%s'
+              Guest Niced:
+                dpName: cpu_ssCpuGuestNice
+                lineType: Line
+                format: '%5.1lf%s'
 
           Free Memory:
             units: Bytes
@@ -203,6 +241,18 @@ device_classes:
                 dpName: uptime_laLoadInt5
               15 Minutes:
                 dpName: uptime_laLoadInt15
+
+          Processes:
+            miny: 0
+            graphpoints:
+              New:
+                dpName: cpu_ssProcsNew
+              Running:
+                dpName: cpu_ssProcsRunning
+              Blocked:
+                dpName: cpu_ssProcsBlocked
+              Switches:
+                dpName: cpu_ssCtxt
 
       # - FileSystem ------------------------------------------------------
       FileSystem:
