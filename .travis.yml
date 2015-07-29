@@ -1,0 +1,3 @@
+language: python
+install: 'pip install shyaml'
+script: 'cat ZenPacks/CERIT_SC/LinuxMonitorAdvanced/zenpack.yaml | shyaml get-values'
