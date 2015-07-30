@@ -5,13 +5,11 @@ class net_dev(ComponentCommandParser):
     componentScanValue = 'interfaceName'
     componentScanner = '^\s*(?P<component>[^:]+):'
 
-    elements = ('ifInOctets','ifInUcastPackets','ifInErrors','ifInDropped',
-        'ifInFifo','ifInFrame','ifInCompressed','ifInMcastPackets',
-        'ifOutOctets','ifOutUcastPackets','ifOutErrors','ifOutDropped',
-        'ifOutFifo','ifOutCollisions','ifOutCarrier','ifOutCompressed')
+    ids = ('ifInOctets', 'ifInUcastPackets', 'ifInErrors', 'ifInDropped',
+           'ifInFifo', 'ifInFrame', 'ifInCompressed', 'ifInMcastPackets',
+           'ifOutOctets', 'ifOutUcastPackets', 'ifOutErrors', 'ifOutDropped',
+           'ifOutFifo', 'ifOutCollisions', 'ifOutCarrier', 'ifOutCompressed')
 
-    scanners = [
-        r':\s*'+
-        r'\s+'.join([r'(?P<%s>\d+)' % (e) for e in elements])+
-        r'$'
-        ]
+    scanners = [ r':\s*' +
+                 r'\s+'.join([r'(?P<%s>\d+)' % (i) for i in ids]) +
+                 r'$' ]

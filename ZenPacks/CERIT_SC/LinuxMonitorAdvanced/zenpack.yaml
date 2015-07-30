@@ -32,7 +32,7 @@ zProperties:
 
 device_classes:
   /Server/SSH/Linux/Advanced:
-    remove: true
+    remove: False
     zProperties:
       zCollectorPlugins:
         - zenoss.cmd.uname
@@ -44,7 +44,7 @@ device_classes:
         - zenoss.cmd.linux.netstat_an
         - zenoss.cmd.linux.netstat_rn
         - zenoss.cmd.linux.process
-        - zenoss.cmd.linux.process
+        - CERIT_SC.cmd.linux.lsb_release
       zDeviceTemplates:
         - Device
 

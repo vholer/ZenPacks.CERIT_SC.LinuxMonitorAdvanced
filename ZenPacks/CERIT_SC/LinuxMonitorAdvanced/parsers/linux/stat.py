@@ -9,10 +9,10 @@ class stat(CommandParser):
                 e = l.split()
                 if len(e) > 1:
                     if e[0] == 'cpu':
-                        ids = ['ssCpuUser', 'ssCpuNice', 'ssCpuSystem',
+                        ids = ('ssCpuUser', 'ssCpuNice', 'ssCpuSystem',
                                'ssCpuIdle', 'ssCpuWait', 'ssCpuInterrupt',
                                'ssCpuSoftInterrupt', 'ssCpuSteal',
-                               'ssCpuGuest', 'ssCpuGuestNice']
+                               'ssCpuGuest', 'ssCpuGuestNice')
                         valueMap.update(dict(zip(ids, e[1:])))
                     elif e[0] == 'ctxt':
                         valueMap['ssCtxt'] = e[1]
