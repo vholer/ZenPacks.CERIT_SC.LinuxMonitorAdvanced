@@ -1,0 +1,68 @@
+import re
+from Products.DataCollector.plugins.CollectorPlugin import LinuxCommandPlugin
+from Products.DataCollector.plugins.DataMaps import MultiArgs
+
+class lsblk(LinuxCommandPlugin):
+    maptype = "HardDiskMap"
+    modname = "Products.ZenModel.HardDisk"
+    relname = "harddisks"
+    compname = "hw"
+    command = 'lsblk -P -b -d -o NAME,RM,SIZE,RO,TYPE,MODEL,VENDOR,SERIAL,REV,TRAN 2>/dev/null || lsblk -P -b -d -o NAME,RM,SIZE,RO,TYPE,MODEL'
+    deviceProperties = \
+        LinuxCommandPlugin.deviceProperties + ('zHardDiskMapMatch',)
+
+    #pattern = re.compile('^/sys/block/(?P<dev>[^/]+)/(?P<key>[^:]+):(?P<value>.*)$')
+    pattern = re.compile('^(?P<key>\w+)="(?P<value>.*)"?$')
+
+    def process(self, device, results, log):
+        log.info('Collecting hard disks for device %s' % device.id)
+        rm = self.relMap()
+        diskmatch = re.compile(getattr(device, 'zHardDiskMapMatch', '^$'))
+        for line in results.splitlines():
+            om = self.objectMap()
+            for param in line.split('" '): #TODO: LAME!
+                match=self.pattern.match(param)
+                k,v = match.group('key'), match.group('value')
+                if k == 'NAME':
+                    om.id = self.prepId(v)
+                    om.description = '/dev'+v
+                elif k == 'SERIAL':
+                    om.serialNumber = v
+                elif k == 'MODEL':
+                    om.setProductKey = MultiArgs(v, 'Unknown') #TODO: vendor
+
+            rm.append(om)
+
+        return rm
+
+
+
+#
+#        # process all data in format:
+#        # /sys/block/vda/size:20971520
+#        #            ^^^ ^^^^ ^^^^^^^^
+#        #            dev  key   value
+#        data={}
+#        for line in results.splitlines():
+#            match=self.pattern.match(line)
+#            if match:
+#                k,v = match.group('key'), match.group('value')
+#                if not data.has_key(match.group('dev')):
+#                    data[match.group('dev')]={}
+#                data[match.group('dev')][k]=v
+#
+#        rm = self.relMap()
+#        diskmatch = re.compile(getattr(device, 'zHardDiskMapMatch', '^$'))
+#        for dev in data.keys():
+#            fixDev=dev.replace('!','/')
+#            fullDev='/dev/'+fixDev
+#            if not diskmatch.search(fixDev): continue
+#
+#            om = self.objectMap()
+#            om.id = self.prepId(fixDev)
+#            om.description = fullDev #TODO
+#            om.setProductKey = MultiArgs(
+#                data[dev].get('device/model','hard disk'),
+#                data[dev].get('device/vendor','Unknown'))
+#            rm.append(om)
+#        return rm

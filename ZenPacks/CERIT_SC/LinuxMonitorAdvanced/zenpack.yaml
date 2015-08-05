@@ -3,21 +3,27 @@ name: ZenPacks.CERIT_SC.LinuxMonitorAdvanced
 zProperties:
   DEFAULTS:
     category: Linux Advanced Monitor
+  zThresholdLoad:
+    type: float
+    default: 0.0
   zThresholdLoadOffset:
-    type: string
+    type: float
     default: 1.3
   zThresholdMemoryCritical:
-    type: string
+    type: float
     default: 95
   zThresholdSwapCritical:
-    type: string
+    type: float
     default: 85
   zThresholdFilesystemLow:
-    type: string
+    type: float
     default: 90
   zThresholdFilesystemCritical:
-    type: string
+    type: float
     default: 95
+  zThresholdInterfaceErrors:
+    type: int
+    default: 100
   zLinuxExpansionCardMapMatchIgnoreTypes:
     type: lines
     default:
@@ -29,6 +35,12 @@ zProperties:
       - ram memory
       - ^unknown$
       - ^pic$
+  zHardDiskMapMatch:
+    type: string
+    default: '^x?[hsv]d[a-z]\d+$|c\d+t\d+d\d+s\d+$|^cciss\/c\dd\dp\d$|^dm\-\d$'
+#  zInterfaceMapIgnoreNames:
+#    type: string
+#    default: '^(lo|vnet\d|virbr\d|usb\d).*$'
 
 device_classes:
   /Server/SSH/Linux/Advanced:
@@ -45,6 +57,8 @@ device_classes:
         - zenoss.cmd.linux.netstat_rn
         - zenoss.cmd.linux.process
         - CERIT_SC.cmd.linux.lsb_release
+        - CERIT_SC.cmd.linux.dmidecode
+        - CERIT_SC.cmd.linux.lsblk
       zDeviceTemplates:
         - Device
 
@@ -82,6 +96,8 @@ device_classes:
                 rrdtype: DERIVE
               ssCpuGuestNice:
                 rrdtype: DERIVE
+              ssIntr:
+                rrdtype: DERIVE
               ssCtxt:
                 rrdtype: DERIVE
               ssProcsNew:
@@ -95,7 +111,7 @@ device_classes:
 
           mem:
             type: COMMAND
-            parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.mem
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.meminfo
             commandTemplate: '/bin/cat /proc/meminfo'
             usessh: True
             eventClass: /Perf/Memory
@@ -115,6 +131,9 @@ device_classes:
                 rrdmin: 0
                 aliases:
                   memoryAvailable__bytes: NULL
+              MemAllocated:
+                rrdtype: GAUGE
+                rrdmin: 0
               MemTotal:
                 rrdtype: GAUGE
                 rrdmin: 0
@@ -125,6 +144,9 @@ device_classes:
                 rrdmin: 0
                 aliases:
                   memAvailSwap: NULL
+              SwapAllocated:
+                rrdtype: GAUGE
+                rrdmin: 0
               SwapTotal:
                 rrdtype: GAUGE
                 rrdmin: 0
@@ -149,9 +171,114 @@ device_classes:
               sysUpTime:
                 rrdtype: GAUGE
 
-        thresholds: {}
+          vmstat:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.key_value
+            commandTemplate: '/bin/cat /proc/vmstat'
+            usessh: True
+            eventClass: /Perf/Memory
+            datapoints:
+              pswpin:
+                rrdtype: DERIVE
+              pswpout:
+                rrdtype: DERIVE
+
+          ksm:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.key_value
+            commandTemplate: '/bin/grep -H "" /sys/kernel/mm/ksm/* | sed -e "s/.*\///"'
+            usessh: True
+            eventClass: /Perf/Memory #TODO
+            datapoints:
+              pages_shared:
+                rrdtype: DERIVE
+              pages_unshared:
+                rrdtype: DERIVE
+              pages_sharing:
+                rrdtype: GAUGE
+                rrdmin: 0
+
+          random:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.key_value
+            commandTemplate: '/bin/grep -H "" /proc/sys/kernel/random/entropy_avail | sed -e "s/.*\///"'
+            usessh: True
+            eventClass: /Perf/Memory #TODO
+            datapoints:
+              entropy_avail:
+                rrdtype: GAUGE
+                rrdmin: 0
+
+        thresholds:
+          high load:
+            dsnames: [uptime_laLoadInt15]
+            eventClass: /Perf/CPU
+            severity: Warning
+            maxval: 'here.zThresholdLoad or (len(here.hw.cpus()) * (here.zThresholdLoadOffset or 1.3))'
+          low swap:
+            dsnames: [mem_SwapAllocated]
+            eventClass: /Perf/Memory
+            severity: Error
+            maxval: 'here.os.totalSwap * (here.zThresholdSwapCritical / 100.0)'
+          low entropy:
+            dsnames: [random_entropy_avail]
+            eventClass: /Perf/Memory #TODO
+            severity: Error
+            minval: '100'
 
         graphs:
+          Load Average:
+            miny: 0
+            graphpoints:
+              1 Minute:
+                dpName: uptime_laLoadInt1
+              5 Minutes:
+                dpName: uptime_laLoadInt5
+              15 Minutes:
+                dpName: uptime_laLoadInt15
+                includeThresholds: True
+
+          Memory Utilization:
+            units: Bytes
+            miny: 0
+            graphpoints:
+              Allocated:
+                dpName: mem_MemAllocated
+                lineType: Area
+                stacked: True
+              Buffers:
+                dpName: mem_Buffers
+                lineType: Area
+                stacked: True
+              Cached:
+                dpName: mem_Cached
+                lineType: Area
+                stacked: True
+              Free:
+                dpName: mem_MemFree
+                lineType: Area
+                stacked: True
+                color: CCCCCC
+              Merged (KSM):
+                dpName: ksm_pages_sharing
+                lineType: Line
+                stacked: False
+                rpn: '4096,*' #TODO
+
+          Swap Utilization:
+            units: Bytes
+            miny: 0
+            graphpoints:
+              Allocated:
+                dpName: mem_SwapAllocated
+                lineType: Area
+                stacked: True
+                includeThresholds: True
+              Free:
+                dpName: mem_SwapFree
+                lineType: Area
+                stacked: True
+
           CPU Utilization:
             units: percent +
             miny: 0
@@ -206,53 +333,53 @@ device_classes:
                 lineType: Line
                 format: '%5.1lf%s'
 
-          Free Memory:
-            units: Bytes
-            miny: 0
-            graphpoints:
-              Free:
-                dpName: mem_MemFree
-                lineType: Area
-                stacked: True
-              Buffers:
-                dpName: mem_Buffers
-                lineType: Area
-                stacked: True
-              Cached:
-                dpName: mem_Cached
-                lineType: Area
-                stacked: True
-
-          Free Swap:
-            units: Bytes
-            miny: 0
-            graphpoints:
-              Free:
-                dpName: mem_SwapFree
-                lineType: Area
-                stacked: True
-
-          Load Average:
-            miny: 0
-            graphpoints:
-              1 Minute:
-                dpName: uptime_laLoadInt1
-              5 Minutes:
-                dpName: uptime_laLoadInt5
-              15 Minutes:
-                dpName: uptime_laLoadInt15
-
           Processes:
             miny: 0
+            log: True
             graphpoints:
-              New:
-                dpName: cpu_ssProcsNew
               Running:
                 dpName: cpu_ssProcsRunning
+                lineType: Area
+                stacked: True
               Blocked:
                 dpName: cpu_ssProcsBlocked
+                lineType: Area
+                stacked: True
+              New:
+                dpName: cpu_ssProcsNew
+                lineType: Line
+
+          Process Context Switches:
+            graphpoints:
               Switches:
                 dpName: cpu_ssCtxt
+              Interrupts:
+                dpName: cpu_ssIntr
+
+          KSM activity:
+            miny: 0
+            units: pages
+            graphpoints:
+              Shared:
+                dpName: ksm_pages_shared
+              Unshared:
+                dpName: ksm_pages_unshared
+
+          Entropy:
+            miny: 0
+            graphpoints:
+              Available:
+                dpName: random_entropy_avail
+                includeThresholds: True
+
+          Swapping:
+            miny: 0
+            units: pages
+            graphpoints:
+              In:
+                dpName: vmstat_pswpin
+              Out:
+                dpName: vmstat_pswpout
 
       # - FileSystem ------------------------------------------------------
       FileSystem:
@@ -314,6 +441,36 @@ device_classes:
               usedInodes:
                 dpName: idisk_usedInodes
 
+      # - HardDisk --------------------------------------------------------
+      HardDisk:
+        description: HardDisk I/O Linux template
+        targetPythonClass: Products.ZenModel.HardDisk
+        datasources:
+          disk:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.diskstats
+            commandTemplate: '/bin/cat /proc/diskstats'
+            usessh: True
+            datapoints:
+              rSectors:
+                rrdtype: DERIVE
+              wSectors:
+                rrdtype: DERIVE
+
+        graphs:
+          IO:
+            units: Bytes/sec
+            miny: 0
+            graphpoints:
+              read:
+                dpName: disk_rSectors
+                lineType: Line
+                rpn: '512,*'
+              write:
+                dpName: disk_wSectors
+                lineType: Area
+                rpn: '512,*'
+
       # - ethernetCsmacd ---------------------------------------------------
       ethernetCsmacd:
         description: The SSH Ethernet interface template via cat /proc/net/dev
@@ -359,11 +516,11 @@ device_classes:
                 rrdtype: DERIVE
 
         thresholds:
-          High errors:
+          high errors:
             dsnames: ['net_dev_ifInErrors','net_dev_ifOutErrors']
             eventClass: /Perf/Interface
             severity: Error
-            maxval: 10
+            maxval: 'here.zThresholdInterfaceErrors or 100' 
 
         graphs:
           Throughput:
@@ -396,7 +553,9 @@ device_classes:
             graphpoints:
               Inbound:
                 dpName: net_dev_ifInErrors
-                lineType: Line #?
+                lineType: Line
+                includeThresholds: True
               Outbound:
                 dpName: net_dev_ifOutErrors
                 lineType: Line
+                includeThresholds: True

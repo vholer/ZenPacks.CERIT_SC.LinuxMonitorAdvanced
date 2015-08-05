@@ -14,6 +14,8 @@ class stat(CommandParser):
                                'ssCpuSoftInterrupt', 'ssCpuSteal',
                                'ssCpuGuest', 'ssCpuGuestNice')
                         valueMap.update(dict(zip(ids, e[1:])))
+                    elif e[0] == 'intr':
+                        valueMap['ssIntr'] = e[1]
                     elif e[0] == 'ctxt':
                         valueMap['ssCtxt'] = e[1]
                     elif e[0] == 'processes':

@@ -5,7 +5,7 @@
 NAME = "ZenPacks.CERIT_SC.LinuxMonitorAdvanced"
 VERSION = "0.0.1"
 AUTHOR = "CERIT Scientific Cloud <support@cerit-sc.cz>"
-LICENSE = "mit"
+LICENSE = "MIT"
 NAMESPACE_PACKAGES = ['ZenPacks', 'ZenPacks.CERIT_SC']
 PACKAGES = ['ZenPacks', 'ZenPacks.CERIT_SC', 'ZenPacks.CERIT_SC.LinuxMonitorAdvanced']
 INSTALL_REQUIRES = ['ZenPacks.zenoss.LinuxMonitor']
