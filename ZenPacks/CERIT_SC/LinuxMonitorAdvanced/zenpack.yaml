@@ -381,6 +381,59 @@ device_classes:
               Out:
                 dpName: vmstat_pswpout
 
+      # - OSProcess  ------------------------------------------------------
+      OSProcess:
+        description: Monitors for OSProcess object
+        targetPythonClass: Products.ZenModel.OSProcess
+        datasources:
+          ps:
+            type: COMMAND
+            parser: ps
+            commandTemplate: '/bin/ps axho pid,rss,cputime,args'
+            usessh: True
+            eventClass: /Perf/OSProcess
+            datapoints:
+              cpu:
+                rrdtype: DERIVE
+              mem:
+                rrdtype: GAUGE
+              count:
+                rrdtype: GAUGE
+
+        thresholds:
+          count: #TODO: rename
+            dsnames: [ps_count]
+            eventClass: /Perf/OSProcess
+            severity: Warning
+            minval: 'here.getMinProcessCount()'
+            maxval: 'here.getMaxProcessCount()'
+
+        graphs:
+          CPU Utilization:
+            units: percentage
+            miny: 0
+            graphpoints:
+              Used:
+                dpName: ps_cpu
+                lineType: Area
+
+          Memory:
+            units: bytes
+            miny: 0
+            graphpoints:
+              Used:
+                dpName: ps_mem
+                lineType: Area
+
+          Process Count:
+            units: processes 
+            miny: 0
+            graphpoints:
+              Count:
+                dpName: ps_count
+                lineType: Area
+                includeThresholds: True
+
       # - FileSystem ------------------------------------------------------
       FileSystem:
         description: My Filesystem template
