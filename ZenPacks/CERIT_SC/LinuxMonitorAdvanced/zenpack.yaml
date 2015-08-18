@@ -366,7 +366,6 @@ device_classes:
                 dpName: ksm_pages_unshared
 
           Entropy:
-            miny: 0
             graphpoints:
               Available:
                 dpName: random_entropy_avail
