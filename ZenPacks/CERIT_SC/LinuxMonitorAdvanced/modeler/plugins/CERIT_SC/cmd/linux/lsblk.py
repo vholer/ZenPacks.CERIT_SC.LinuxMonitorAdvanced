@@ -7,9 +7,18 @@ class lsblk(LinuxCommandPlugin):
     modname = "Products.ZenModel.HardDisk"
     relname = "harddisks"
     compname = "hw"
-    command = 'lsblk -P -b -d -o NAME,RM,SIZE,RO,TYPE,MODEL,VENDOR,SERIAL,REV,TRAN 2>/dev/null || lsblk -P -b -d -o NAME,RM,SIZE,RO,TYPE,MODEL'
-    deviceProperties = \
-        LinuxCommandPlugin.deviceProperties + ('zHardDiskMapMatch',)
+    command = '''
+        PARAMS_BASE='NAME,RM,SIZE,RO,TYPE,MODEL'
+        PARAMS_MORE='VENDOR,SERIAL,REV,TRAN'
+
+        if which lsblk >/dev/null 2>&1; then
+            lsblk -P -b -d -o "${PARAMS_BASE},${PARAMS_MORE}" 2>/dev/null || \
+                lsblk -P -b -d -o "${PARAMS_BASE}" 
+        fi
+    '''
+
+    deviceProperties = LinuxCommandPlugin.deviceProperties + \
+        ('zHardDiskMapMatch',)
 
     #pattern = re.compile('^/sys/block/(?P<dev>[^/]+)/(?P<key>[^:]+):(?P<value>.*)$')
     pattern = re.compile('^(?P<key>\w+)="(?P<value>.*)"?$')
