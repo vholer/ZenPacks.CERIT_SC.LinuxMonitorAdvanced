@@ -20,15 +20,16 @@ class lsblk(LinuxCommandPlugin):
     deviceProperties = LinuxCommandPlugin.deviceProperties + \
         ('zHardDiskMapMatch',)
 
-    #pattern = re.compile('^/sys/block/(?P<dev>[^/]+)/(?P<key>[^:]+):(?P<value>.*)$')
     pattern = re.compile('^(?P<key>\w+)="(?P<value>.*)"?$')
 
     def process(self, device, results, log):
         log.info('Collecting hard disks for device %s' % device.id)
         rm = self.relMap()
-        diskmatch = re.compile(getattr(device, 'zHardDiskMapMatch', '^$'))
+        diskmatch = re.compile(getattr(device, 'zHardDiskMapMatch', '^$')) #TODO
         for line in results.splitlines():
             om = self.objectMap()
+            vendor, model = ('Unknown', 'Unknown')
+
             for param in line.split('" '): #TODO: LAME!
                 match=self.pattern.match(param)
                 k,v = match.group('key'), match.group('value')
@@ -38,8 +39,11 @@ class lsblk(LinuxCommandPlugin):
                 elif k == 'SERIAL':
                     om.serialNumber = v
                 elif k == 'MODEL':
-                    om.setProductKey = MultiArgs(v, 'Unknown') #TODO: vendor
+                    model = v
+                elif k == 'VENDOR':
+                    vendor = v
 
+            om.setProductKey = MultiArgs(model, vendor)
             rm.append(om)
 
         return rm
