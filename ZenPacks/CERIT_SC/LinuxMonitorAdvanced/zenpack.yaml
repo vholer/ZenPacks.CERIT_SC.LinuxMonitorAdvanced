@@ -24,6 +24,16 @@ zProperties:
   zThresholdInterfaceErrors:
     type: int
     default: 100
+  zFileSystemMapIgnoreFormats:
+    type: lines
+    default:
+      - devtmpfs
+      - rootfs
+      - tmpfs
+      - nfs
+      - nfs4
+      - afs
+      - gpfs
   zLinuxExpansionCardMapMatchIgnoreTypes:
     type: lines
     default:
@@ -49,7 +59,6 @@ device_classes:
       zCollectorPlugins:
         - zenoss.cmd.uname
         - zenoss.cmd.uname_a
-        - zenoss.cmd.df
         - zenoss.cmd.linux.cpuinfo
         - zenoss.cmd.linux.memory
         - zenoss.cmd.linux.ifconfig
@@ -59,6 +68,7 @@ device_classes:
         - CERIT_SC.cmd.linux.lsb_release
         - CERIT_SC.cmd.linux.dmidecode
         - CERIT_SC.cmd.linux.lsblk
+        - CERIT_SC.cmd.linux.df
       zDeviceTemplates:
         - Device
 
