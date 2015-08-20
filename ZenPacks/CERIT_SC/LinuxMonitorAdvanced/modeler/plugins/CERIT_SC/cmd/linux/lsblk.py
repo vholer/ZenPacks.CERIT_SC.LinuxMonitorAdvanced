@@ -7,14 +7,12 @@ class lsblk(LinuxCommandPlugin):
     modname = "Products.ZenModel.HardDisk"
     relname = "harddisks"
     compname = "hw"
-    command = '''
-        PARAMS_BASE='NAME,RM,SIZE,RO,TYPE,MODEL'
-        PARAMS_MORE='VENDOR,SERIAL,REV,TRAN'
-
-        if which lsblk >/dev/null 2>&1; then
-            lsblk -P -b -d -o "${PARAMS_BASE},${PARAMS_MORE}" 2>/dev/null || \
-                lsblk -P -b -d -o "${PARAMS_BASE}" 
-        fi
+    command = '''\
+if which lsblk >/dev/null 2>&1; then
+    lsblk -P -b -d -o "NAME,RM,SIZE,RO,TYPE,MODEL,VENDOR,SERIAL,REV,TRAN" 2>/dev/null ||
+        lsblk -P -b -d -o "NAME,RM,SIZE,RO,TYPE,MODEL" 2>/dev/null ||
+        lsblk -n -b -d -o "NAME,SIZE"
+fi
     '''
 
     deviceProperties = LinuxCommandPlugin.deviceProperties + \
@@ -30,25 +28,27 @@ class lsblk(LinuxCommandPlugin):
             om = self.objectMap()
             vendor, model = ('Unknown', 'Unknown')
 
-            for param in line.split('" '): #TODO: LAME!
-                match=self.pattern.match(param)
-                k,v = match.group('key'), match.group('value')
-                if k == 'NAME':
-                    om.id = self.prepId(v)
-                    om.description = '/dev'+v
-                elif k == 'SERIAL':
-                    om.serialNumber = v
-                elif k == 'MODEL':
-                    model = v
-                elif k == 'VENDOR':
-                    vendor = v
-
-            om.setProductKey = MultiArgs(model, vendor)
+            dsv = line.split()
+            if len(dsv) == 2:
+                om.id = self.prepId(dsv[0])
+                om.description = '/dev/'+dsv[0]
+            else:
+                for param in line.split('" '): #TODO: LAME!
+                    match=self.pattern.match(param)
+                    k,v = match.group('key'), match.group('value')
+                    if k == 'NAME':
+                        om.id = self.prepId(v)
+                        om.description = '/dev/'+v
+                    elif k == 'SERIAL':
+                        om.serialNumber = v
+                    elif k == 'MODEL':
+                        model = v
+                    elif k == 'VENDOR':
+                        vendor = v
+                om.setProductKey = MultiArgs(model, vendor)
             rm.append(om)
 
         return rm
-
-
 
 #
 #        # process all data in format:
