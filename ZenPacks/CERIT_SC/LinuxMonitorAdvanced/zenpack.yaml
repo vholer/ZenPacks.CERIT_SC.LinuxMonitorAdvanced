@@ -118,6 +118,8 @@ device_classes:
         - zenoss.cmd.uname_a
         - zenoss.cmd.linux.cpuinfo
         - zenoss.cmd.linux.memory
+        - CERIT_SC.cmd.linux.ethtool
+        - CERIT_SC.cmd.linux.ip
         - zenoss.cmd.linux.netstat_an
         - zenoss.cmd.linux.netstat_rn
         - zenoss.cmd.linux.process
