@@ -34,7 +34,7 @@ zProperties:
       - nfs4
       - afs
       - gpfs
-  zLinuxExpansionCardMapMatchIgnoreTypes:
+  zLinuxExpansionCardMapMatchIgnoreClasses:
     type: lines
     default:
       - bridge$
@@ -45,12 +45,69 @@ zProperties:
       - ram memory
       - ^unknown$
       - ^pic$
+      - ^\s*$
   zHardDiskMapMatch:
     type: string
     default: '^x?[hsv]d[a-z]\d+$|c\d+t\d+d\d+s\d+$|^cciss\/c\dd\dp\d$|^dm\-\d$'
 #  zInterfaceMapIgnoreNames:
 #    type: string
 #    default: '^(lo|vnet\d|virbr\d|usb\d).*$'
+
+classes:
+  LinuxExpansionCard:
+    #base: [zenpacklib.Component, Products.ZenModel.ExpansionCard.ExpansionCard]
+    base: [zenpacklib.Component]
+    label: ExpansionCard 
+    properties:
+      slot:
+        type: string
+        label: Slot
+        order: 1
+      physicalSlot:
+        type: int
+        label: Physical slot
+        short_label: PhySlot
+        order: 2
+      cardClass:
+        type: string
+        label: Class
+        default: Unknown
+        order: 5
+      vendor:
+        type: string
+        label: Vendor
+        order: 8
+      subVendor:
+        type: string
+        label: Subsystem vendor
+        short_label: SVendor
+        order: 10
+      subModel:
+        type: string
+        label: Subsystem model
+        short_label: SModel
+        order: 11
+      revision:
+        type: string
+        label: Revision
+        short_label: Rev
+        order: 12
+      progIface:
+        type: string
+        label: Programming interface
+        short_label: ProgIf
+        order: 20
+      driver:
+        type: string
+        label: Kernel driver
+        short_label: Driver
+        order: 30
+      modules:
+        type: lines
+        label: Kernel module(s)
+        short_label: Module(s)
+        default: []
+        order: 31
 
 device_classes:
   /Server/SSH/Linux/Advanced:
@@ -61,13 +118,13 @@ device_classes:
         - zenoss.cmd.uname_a
         - zenoss.cmd.linux.cpuinfo
         - zenoss.cmd.linux.memory
-        - zenoss.cmd.linux.ifconfig
         - zenoss.cmd.linux.netstat_an
         - zenoss.cmd.linux.netstat_rn
         - zenoss.cmd.linux.process
         - CERIT_SC.cmd.linux.lsb_release
         - CERIT_SC.cmd.linux.dmidecode
         - CERIT_SC.cmd.linux.lsblk
+        - CERIT_SC.cmd.linux.lspci
         - CERIT_SC.cmd.linux.df
       zDeviceTemplates:
         - Device
