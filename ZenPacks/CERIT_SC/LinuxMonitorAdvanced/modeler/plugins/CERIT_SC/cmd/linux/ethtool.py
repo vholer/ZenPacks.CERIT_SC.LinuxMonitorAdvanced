@@ -14,9 +14,16 @@ class ethtool(LinuxCommandPlugin):
     re_duplex = re.compile(r"Duplex: (?P<duplex>\S+)")
 
     def process(self, device, results, log):
+        # we don't detect interface type via ethtool so if this zProperty is set,
+        # we rather skip modeling since this modeler sets only link duplex/speed
+        skipTypes = getattr(device, 'zInterfaceMapIgnoreTypes', None)
+        if skipTypes:
+            log.info("Skipping modeling via ethtool for device %s due "
+                     "to no support for zInterfaceMapIgnoreTypes" % device.id)
+            return
+
         log.info('Collecting IP interface speeds for device %s' % device.id)
         skipNames = getattr(device, 'zInterfaceMapIgnoreNames', None)
-        #skipTypes = getattr(device, 'zInterfaceMapIgnoreTypes', None) #TODO?
         rm = self.relMap()
 
         om = None
