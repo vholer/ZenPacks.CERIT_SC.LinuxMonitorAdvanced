@@ -55,8 +55,7 @@ zProperties:
 
 classes:
   LinuxExpansionCard:
-    #base: [zenpacklib.Component, Products.ZenModel.ExpansionCard.ExpansionCard]
-    base: [zenpacklib.Component]
+    base: [zenpacklib.Component, Products.ZenModel.ExpansionCard.ExpansionCard]
     label: ExpansionCard 
     properties:
       slot:
