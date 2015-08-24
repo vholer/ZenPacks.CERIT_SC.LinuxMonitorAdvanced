@@ -277,6 +277,20 @@ device_classes:
                 rrdtype: GAUGE
                 rrdmin: 0
 
+          who:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.who
+            commandTemplate: '/usr/bin/who'
+            usessh: True
+            eventClass: /Perf/Memory #TODO
+            datapoints:
+              total:
+                rrdtype: GAUGE
+                rrdmin: 0
+              user_root:
+                rrdtype: GAUGE
+                rrdmin: 0
+
         thresholds:
           high load:
             dsnames: [uptime_laLoadInt15]
@@ -447,6 +461,16 @@ device_classes:
                 dpName: vmstat_pswpin
               Out:
                 dpName: vmstat_pswpout
+
+          Users:
+            miny: 0
+            units: users
+            graphpoints:
+              Total:
+                dpName: who_total
+                lineType: Area
+              User root:
+                dpName: who_user_root
 
       # - OSProcess  ------------------------------------------------------
       OSProcess:
