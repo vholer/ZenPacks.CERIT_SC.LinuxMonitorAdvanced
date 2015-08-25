@@ -19,7 +19,7 @@ fi
 
         if results:
             for line in results.splitlines():
-                 (name, xxx, status, yyy, value) = \
+                 (name, idx, status, entity, value) = \
                     [ v.strip() for v in line.split('|', 4) ]
 
                  match = re.search('^(\d+) degrees C$', value)
@@ -27,6 +27,7 @@ fi
                     om = self.objectMap()
                     om.id = self.prepId(name)
                     om.name = name
+                    om.snmpindex = int(idx.rstrip('h'), 16)
                     om.state = status
                     rm.append(om)
 
