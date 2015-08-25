@@ -128,6 +128,7 @@ device_classes:
         - CERIT_SC.cmd.linux.lspci
         - CERIT_SC.cmd.linux.df
         - CERIT_SC.cmd.linux.ipmitool_temp
+        - CERIT_SC.cmd.linux.ipmitool_fan
       zDeviceTemplates:
         - Device
 
@@ -725,3 +726,24 @@ device_classes:
             graphpoints:
               Temperature:
                 dpName: temperature_celsius
+
+      # - Fan -------------------------------------------------------------
+      Fan:
+        description: Fan template for Linux device
+        targetPythonClass: Products.ZenModel.Fan
+        datasources:
+          speed:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.ipmitool_sdr
+            commandTemplate: '/usr/bin/sudo -n ipmitool -c -S cache.sdr sdr type fan 2>/dev/null'
+            usessh: True
+            datapoints:
+              rpm:
+                rrdtype: GAUGE
+
+        graphs:
+          Speed:
+            units: RPM
+            graphpoints:
+              Temperature:
+                dpName: speed_rpm
