@@ -127,6 +127,7 @@ device_classes:
         - CERIT_SC.cmd.linux.lsblk
         - CERIT_SC.cmd.linux.lspci
         - CERIT_SC.cmd.linux.df
+        - CERIT_SC.cmd.linux.ipmitool_temp
       zDeviceTemplates:
         - Device
 
@@ -280,7 +281,7 @@ device_classes:
           who:
             type: COMMAND
             parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.who
-            commandTemplate: '/usr/bin/who'
+            commandTemplate: '/usr/bin/who --heading'
             usessh: True
             eventClass: /Perf/Memory #TODO
             datapoints:
@@ -703,3 +704,24 @@ device_classes:
                 dpName: net_dev_ifOutErrors
                 lineType: Line
                 includeThresholds: True
+
+      # - TemperatureSensor -----------------------------------------------
+      TemperatureSensor:
+        description: Temperature sensor template for Linux device
+        targetPythonClass: Products.ZenModel.TemperatureSensor
+        datasources:
+          temperature:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.ipmitool_sdr
+            commandTemplate: '/usr/bin/sudo -n ipmitool -c -S cache.sdr sdr type temperature 2>/dev/null'
+            usessh: True
+            datapoints:
+              celsius:
+                rrdtype: GAUGE
+
+        graphs:
+          Temperature:
+            units: Celsius
+            graphpoints:
+              Temperature:
+                dpName: temperature_celsius
