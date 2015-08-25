@@ -1,12 +1,16 @@
+import re
 from Products.ZenRRD.CommandParser import CommandParser
 
 class who(CommandParser):
     def processResults(self, cmd, result):
-        if cmd.result.output:
-            valueMap = { 'total': 0 }
+        valueMap = { 'total': 0 }
 
-            # process command output
+        # process command output
+        if cmd.result.output:
             for line in cmd.result.output.splitlines():
+                if re.search('^NAME\s+LINE\s+TIME\s+COMMENT$', line):
+                    continue    
+
                 (login, r) = line.split(' ', 1)
                 if login:
                     valueMap['total'] += 1
@@ -16,10 +20,10 @@ class who(CommandParser):
                     else:
                         valueMap[key] = 1
 
-            # process values
-            datapointMap = dict([(dp.id, dp) for dp in cmd.points])
-            for id in valueMap:
-                if datapointMap.has_key(id):
-                    result.values.append((datapointMap[id], long(valueMap[id])))
+        # process values
+        datapointMap = dict([(dp.id, dp) for dp in cmd.points])
+        for id in valueMap:
+            if datapointMap.has_key(id):
+                result.values.append((datapointMap[id], long(valueMap[id])))
 
         return result
