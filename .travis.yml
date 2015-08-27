@@ -2,4 +2,5 @@ language: python
 install: 'pip install shyaml'
 script:
     - "cat ZenPacks/CERIT_SC/LinuxMonitorAdvanced/zenpack.yaml | shyaml get-values >/dev/null"
+    - "xmllint ZenPacks/CERIT_SC/LinuxMonitorAdvanced/objects/objects.xml >/dev/null"
     - "find . -name '*.py' -exec python -B -m py_compile {} \\;"

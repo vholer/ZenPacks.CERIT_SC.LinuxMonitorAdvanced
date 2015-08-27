@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<objects>
+  <!-- TODO: move somewhere into this ZenPack's specific event path -->
+  <object id='/zport/dmd/Events/Perf' module='Products.ZenEvents.EventClass' class='EventClass'>
+    <property type="text" id="transform" mode="w" >
+import re
+if device and evt.eventKey and evt.message:
+    match = re.search("threshold of ([^:]+) (exceeded|not met): "
+                      "current value ([\d\.]+)", evt.message)
+    if match:
+        if 'percent' in evt.eventKey:
+            units = ' %'
+        elif 'celsius' in evt.eventKey:
+            units = ' °C'
+        elif 'fahrnheit' in evt.eventKey:
+            units = ' F'
+        elif 'rpm' in evt.eventKey:
+            units = ' RPM'
+        else:
+            units = ''
+
+        evt.summary = "%s %s: current %.1f%s" % (
+            match.group(1),
+            match.group(2),
+            float(match.group(3)),
+            units
+        )
+    </property>
+  </object>
+</objects>
