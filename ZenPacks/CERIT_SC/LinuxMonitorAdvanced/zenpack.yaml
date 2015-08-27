@@ -17,10 +17,13 @@ zProperties:
     default: 85
   zThresholdFilesystemLow:
     type: float
-    default: 90
+    default: 93
   zThresholdFilesystemCritical:
     type: float
-    default: 95
+    default: 97
+  zThresholdFilesystemInodes:
+    type: float
+    default: 80
   zThresholdInterfaceErrors:
     type: int
     default: 100
@@ -49,6 +52,9 @@ zProperties:
   zHardDiskMapMatch:
     type: string
     default: '^x?[hsv]d[a-z]\d+$|c\d+t\d+d\d+s\d+$|^cciss\/c\dd\dp\d$|^dm\-\d$'
+  cJenTestuji:
+    type: string
+    default: 'Test'
 #  zInterfaceMapIgnoreNames:
 #    type: string
 #    default: '^(lo|vnet\d|virbr\d|usb\d).*$'
@@ -258,7 +264,7 @@ device_classes:
             parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.key_value
             commandTemplate: '/bin/grep -H "" /sys/kernel/mm/ksm/* | sed -e "s/.*\///"'
             usessh: True
-            eventClass: /Perf/Memory #TODO
+            eventClass: /Perf/Memory
             datapoints:
               pages_shared:
                 rrdtype: DERIVE
@@ -306,7 +312,7 @@ device_classes:
             maxval: 'here.os.totalSwap * (here.zThresholdSwapCritical / 100.0)'
           low entropy:
             dsnames: [random_entropy_avail]
-            eventClass: /Perf/Memory #TODO
+            eventClass: /Perf/Entropy
             severity: Error
             minval: '100'
 
@@ -356,7 +362,6 @@ device_classes:
               Allocated:
                 dpName: mem_SwapAllocated
                 lineType: Area
-                stacked: True
                 includeThresholds: True
               Free:
                 dpName: mem_SwapFree
@@ -537,55 +542,86 @@ device_classes:
             parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.df
             commandTemplate: '/bin/df -kP ${here/mount}'
             usessh: True
-            datapoints: #TODO: ID/FORMULA
-              availBlocks:
+            datapoints:
+              totalBlocks:
                 rrdtype: GAUGE
               usedBlocks:
                 rrdtype: GAUGE
+                aliases:
+                  usedFilesystemSpace__bytes: '${here/blockSize},*'
+              availBlocks:
+                rrdtype: GAUGE
+              percentUsed:
+                rrdtype: GAUGE
+                rrdmin: 0
+                rrdmax: 100
+                aliases:
+                  dskPercent: NULL
 
           idisk:
             type: COMMAND
             parser: ZenPacks.zenoss.LinuxMonitor.parsers.linux.dfi
             commandTemplate: '/bin/df -ikP ${here/mount}'
             usessh: True
-            datapoints: #TODO: ID/FORMULA
-              availableInodes:
-                rrdtype: GAUGE
-              percentInodesUsed:
-                rrdtype: GAUGE
+            datapoints:
               totalInodes:
                 rrdtype: GAUGE
               usedInodes:
                 rrdtype: GAUGE
+              availableInodes:
+                rrdtype: GAUGE
+              percentInodesUsed:
+                rrdtype: GAUGE
+                rrdmin: 0
+                rrdmax: 100
 
         thresholds:
-          Greater than 90 percent used:
-            dsnames: [disk_availBlocks]
+          critical space:
+            dsnames: [disk_usedBlocks]
             eventClass: /Perf/Filesystem
-            severity: Warning
-            minval: 'here.totalBlocks * 0.10'
+            severity: Critical
+            maxval: 'here.totalBlocks * (here.zThresholdFilesystemCritical/100.0)'
+          low space:
+            dsnames: [disk_usedBlocks]
+            eventClass: /Perf/Filesystem
+            severity: Error
+            minval: 'here.totalBlocks * (here.zThresholdFilesystemCritical/100.0) - 1'
+            maxval: 'here.totalBlocks * (here.zThresholdFilesystemLow/100.0)'
+          high inodes:
+            dsnames: [idisk_percentInodesUsed]
+            eventClass: /Perf/Filesystem
+            severity: Error
+            maxval: 'here.zThresholdFilesystemInodes'
 
         graphs:
-          Block Utilization:
+          Space Utilization:
+            units: Bytes
+            miny: 0
+            base: True
+            graphpoints:
+              Used:
+                dpName: disk_usedBlocks
+                rpn: '${here/blockSize},*'
+                lineType: Area
+                includeThresholds: True
+              Free:
+                dpName: disk_availBlocks
+                rpn: '${here/blockSize},*'
+                lineType: Area
+                stacked: True
+              Total:
+                dpName: disk_totalBlocks
+                rpn: '${here/blockSize},*'
+
+          Inodes Utilization:
             units: percentage
             miny: 0
             maxy: 100
             graphpoints:
               Used:
-                dpName: disk_availBlocks
-                lineType: Area
-                rpn: '${here/totalBlocks},/,1,-,-100,*'
-                includeThresholds: True
-
-          Inode Utilization:
-            units: percentage
-            graphpoints:
-              Percent inodes used: #%
                 dpName: idisk_percentInodesUsed
-              totalInodes:
-                dpName: idisk_totalInodes
-              usedInodes:
-                dpName: idisk_usedInodes
+                lineType: Area
+                includeThresholds: True
 
       # - HardDisk --------------------------------------------------------
       HardDisk:
