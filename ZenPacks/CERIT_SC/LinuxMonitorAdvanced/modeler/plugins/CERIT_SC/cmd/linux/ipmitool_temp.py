@@ -8,7 +8,25 @@ class ipmitool_temp(LinuxCommandPlugin):
     compname = "hw"
     command = '''\
 if which ipmitool >/dev/null 2>&1; then
-    sudo -n ipmitool sdr dump cache.sdr >/dev/null 2>&1
+    if [ `stat --format=%Y cache.sdr` -le $(( `date +%s` - 600 )) ]; then 
+        if [ -f cache.sdr.lock ]; then
+            # remove stale lockfile
+            if [ `stat --format=%Y cache.sdr.lock` -le $(( `date +%s` - 600 )) ]; then 
+                unlink cache.sdr.lock
+            fi
+        else
+            # lock and proceed with sdr dump
+            echo $$ >cache.sdr.lock
+            if grep -Fqx $$ cache.sdr.lock; then
+                sudo -n ipmitool sdr dump cache.sdr >/dev/null 2>&1
+                unlink cache.sdr.lock
+            else
+                #TODO: wait for sdr dump
+                :
+            fi
+        fi
+    fi
+
     sudo -n ipmitool -S cache.sdr sdr type temperature 2>/dev/null
 fi
     '''
