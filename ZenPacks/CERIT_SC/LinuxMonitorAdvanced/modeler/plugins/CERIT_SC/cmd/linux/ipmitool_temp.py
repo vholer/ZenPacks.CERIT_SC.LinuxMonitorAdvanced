@@ -1,33 +1,19 @@
-import re
 from Products.DataCollector.plugins.CollectorPlugin import LinuxCommandPlugin
+from ZenPacks.CERIT_SC.LinuxMonitorAdvanced.lib.IPMISensorsCommandPlugin import IPMISensorsCommandPlugin
 
-class ipmitool_temp(LinuxCommandPlugin):
+class ipmitool_temp(IPMISensorsCommandPlugin):
     maptype = "TemperatureSensorMap"
-    modname = "Products.ZenModel.TemperatureSensor"
+    #modname = "Products.ZenModel.TemperatureSensor"
+    modname = "ZenPacks.CERIT_SC.LinuxMonitorAdvanced.LinuxTemperatureSensor"
     relname = "temperaturesensors"
     compname = "hw"
     command = '''\
-if which ipmitool >/dev/null 2>&1; then
-    if [ `stat --format=%Y cache.sdr` -le $(( `date +%s` - 600 )) ]; then 
-        if [ -f cache.sdr.lock ]; then
-            # remove stale lockfile
-            if [ `stat --format=%Y cache.sdr.lock` -le $(( `date +%s` - 600 )) ]; then 
-                unlink cache.sdr.lock
-            fi
-        else
-            # lock and proceed with sdr dump
-            echo $$ >cache.sdr.lock
-            if grep -Fqx $$ cache.sdr.lock; then
-                sudo -n ipmitool sdr dump cache.sdr >/dev/null 2>&1
-                unlink cache.sdr.lock
-            else
-                #TODO: wait for sdr dump
-                :
-            fi
-        fi
-    fi
-
-    sudo -n ipmitool -S cache.sdr sdr type temperature 2>/dev/null
+if which ipmitool >/dev/null 2>&1 && ( test -c /dev/ipmi0 || test -c /dev/ipmi/0 || test -c /dev/ipmidev/0 ); then
+    test -f cache.sdr || sudo -n ipmitool -v sdr dump cache.sdr >/dev/null 2>&1
+    SDR=$(sudo -n ipmitool -S cache.sdr -v sdr type temperature 2>/dev/null)
+    echo "${SDR}" | egrep -qi '(Upper|Lower) (non-)?(critical|recoverable)' &&
+        echo "${SDR}" ||
+        sudo -n ipmitool -v sensor list 2>/dev/null
 fi
     '''
 
@@ -35,27 +21,27 @@ fi
         log.info('Collecting temperature sensors for device %s' % device.id)
         rm = self.relMap()
 
-        if results:
-            for line in results.splitlines():
-                 (name, idx, status, entity, value) = \
-                    [ v.strip() for v in line.split('|', 4) ]
+        for sensor in results.values():
+            if (sensor.get('type') == 'Temperature') and \
+                    (sensor.get('units') == 'degrees C') and \
+                    (sensor.get('dataType') == 'analog') and \
+                    (sensor.get('name')):
+                om = self.objectMap()
+                om.id = self.prepId(sensor['name'])
+                om.name = sensor['name']
+                #om.snmpindex = int(sensor['id'], 16)
+                om.snmpindex = sensor['id'].upper()
+                om.entity = sensor.get('entity', sensor.get('entityId', 'unknown'))
+                om.state = sensor.get('state', 'Unknown')
 
-                 match = re.search('^(\d+) degrees C$', value)
-                 if match:
-                    om = self.objectMap()
-                    om.id = self.prepId(name)
-                    om.name = name
-                    om.snmpindex = int(idx.rstrip('h'), 16)
-                    om.state = status
-                    rm.append(om)
+                # thresholds
+                for t in ('lowerNC', 'lowerC', 'lowerNR',
+                          'upperNC', 'upperC', 'upperNR'):
+                    try:
+                        setattr(om, t, float(sensor.get(t)))
+                    except:
+                        setattr(om, t, None)
 
-#                (name, value, units, status, lnr, lc, lnc, unc, uc, unr ) = \
-#                    [ v.strip() for v in line.split('|', 9) ]
-#
-#                if (units == 'degrees C') and (value != 'na'):
-#                    om = self.objectMap()
-#                    om.id = self.prepId(name)
-#                    om.state = status
-#                    rm.append(om)
+                rm.append(om)
 
         return rm
