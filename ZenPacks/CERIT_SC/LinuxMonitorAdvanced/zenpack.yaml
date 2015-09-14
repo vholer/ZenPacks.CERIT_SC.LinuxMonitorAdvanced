@@ -60,6 +60,134 @@ zProperties:
 #    default: '^(lo|vnet\d|virbr\d|usb\d).*$'
 
 classes:
+  LogicalDisk:
+    #base: [zenpacklib.HardwareComponent]
+    base: [zenpacklib.Component]
+    label: LogicalDisk
+    properties:
+      description:
+        type: string
+        label: OS name
+        order: 1
+      hostresindex:
+        type: int
+        grid_display: False
+        default: 0
+      size:
+        type: int
+        label: Size
+        default: 0
+        renderer: Zenoss.render.bytesString
+        order: 3
+      stripesize:
+        type: int
+        label: Stripe Size
+        short_label: Stripe
+        default: 0
+        renderer: Zenoss.render.bytesString
+        order: 4
+      diskType:
+        type: string
+        label: Type
+        default: ''
+        order: 2
+      status: #???
+        type: int
+        label: Status
+        default: 19
+        order: 5
+
+  LinuxHWLogicalDisk:
+    base: [LogicalDisk]
+    monitoring_templates: [LinuxHWLogicalDisk]
+    label: Hardware RAID
+
+  LinuxSWLogicalDisk:
+    base: [LogicalDisk]
+    monitoring_templates: [LinuxSWLogicalDisk]
+    label: Software RAID
+    properties:
+      status:
+        type: int
+        label: Status
+        #default: 1
+        datapoint: mdstat_status
+        #datapoint_default: 0
+#        enum:
+#          - Unknown                      #0
+#          - Unknown                      #1
+#          - Online                       #2
+#          - Offline                      #3
+#          - Non-degraded w/ failed disks #4
+#          - Degraded                     #5
+#          - Failed                       #6
+#          - Resync pending               #7
+#          - Resync delayed               #8
+#          - Resync unknown               #9
+#          - Resyncing                    #10
+#          - Check pending                #11
+#          - Check delayed                #12
+#          - Check unknown                #13
+#          - Checking                     #14
+#          - Recovery pending             #15
+#          - Recovery delayed             #16
+#          - Recovery unknown             #17
+#          - Recovering                   #18
+#          - Unknown task                 #19
+
+  LinuxTemperatureSensor:
+    base: [zenpacklib.Component, Products.ZenModel.TemperatureSensor.TemperatureSensor]
+    monitoring_templates: [LinuxTemperatureSensor]
+    label: Temperature
+    properties:
+      entity:
+        type: string
+        label: Location
+        order: 1
+      temperatureCelsiusString:
+        label: Temperature (Celsius)
+        short_label: Temperature
+        group: Overview
+        order: 10
+        api_backendtype: method
+        api_only: True
+      lowerNC:
+        type: float
+        label: Lower non-critical
+        #group: Threshold
+        order: 20
+        grid_display: False
+      lowerC:
+        type: float
+        label: Lower critical
+        #group: Threshold
+        order: 21
+        grid_display: False
+      lowerNR:
+        type: float
+        label: Lower non-recoverable
+        #group: Threshold
+        order: 22
+        grid_display: False
+      upperNC:
+        type: float
+        label: Upper non-critical
+        #group: Threshold
+        order: 30
+        grid_display: False
+      upperC:
+        type: float
+        label: Upper critical
+        #group: Threshold
+        order: 31
+        grid_display: False
+      upperNR:
+        type: float
+        label: Upper non-recoverable
+        #group: Threshold
+        order: 32
+        grid_display: False
+
   LinuxExpansionCard:
     base: [zenpacklib.Component, Products.ZenModel.ExpansionCard.ExpansionCard]
     label: ExpansionCard 
@@ -67,40 +195,46 @@ classes:
       slot:
         type: string
         label: Slot
-        order: 1
+        order: 2
       physicalSlot:
         type: int
         label: Physical slot
-        short_label: PhySlot
-        order: 2
+        short_label: Phys. slot
+        order: 3
       cardClass:
         type: string
         label: Class
+        grid_display: False
         default: Unknown
-        order: 5
+        order: 4
       vendor:
         type: string
         label: Vendor
+        grid_display: False
         order: 8
       subVendor:
         type: string
         label: Subsystem vendor
-        short_label: SVendor
+        short_label: Sub. vendor
+        grid_display: False
         order: 10
       subModel:
         type: string
         label: Subsystem model
-        short_label: SModel
+        short_label: Sub. model
+        grid_display: False
         order: 11
       revision:
         type: string
         label: Revision
-        short_label: Rev
+        short_label: Rev.
+        grid_display: False
         order: 12
       progIface:
         type: string
         label: Programming interface
-        short_label: ProgIf
+        short_label: Prog. interface
+        grid_display: False
         order: 20
       driver:
         type: string
@@ -111,8 +245,13 @@ classes:
         type: lines
         label: Kernel module(s)
         short_label: Module(s)
+        grid_display: False
         default: []
         order: 31
+
+class_relationships:
+  - Products.ZenModel.Device.Device 1:MC LinuxHWLogicalDisk
+  - Products.ZenModel.Device.Device 1:MC LinuxSWLogicalDisk
 
 device_classes:
   /Server/SSH/Linux/Advanced:
@@ -131,6 +270,7 @@ device_classes:
         - CERIT_SC.cmd.linux.lsb_release
         - CERIT_SC.cmd.linux.dmidecode
         - CERIT_SC.cmd.linux.lsblk
+        - CERIT_SC.cmd.linux.mdstat
         - CERIT_SC.cmd.linux.lspci
         - CERIT_SC.cmd.linux.df
         - CERIT_SC.cmd.linux.ipmitool_temp
@@ -743,18 +883,35 @@ device_classes:
                 includeThresholds: True
 
       # - TemperatureSensor -----------------------------------------------
-      TemperatureSensor:
+      LinuxTemperatureSensor:
         description: Temperature sensor template for Linux device
-        targetPythonClass: Products.ZenModel.TemperatureSensor
+        targetPythonClass: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.LinuxTemperatureSensor
         datasources:
           temperature:
             type: COMMAND
             parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.ipmitool_sdr
-            commandTemplate: '/usr/bin/sudo -n ipmitool -c -S cache.sdr sdr type temperature 2>/dev/null'
+            commandTemplate: '/usr/bin/sudo -n ipmitool -S cache.sdr sdr type temperature 2>/dev/null'
             usessh: True
             datapoints:
               celsius:
                 rrdtype: GAUGE
+
+        thresholds:
+          non-critical:
+            dsnames: [temperature_celsius]
+            eventClass: /HW/Temperature
+            severity: Error
+            maxval: 'here.upperNC'
+          critical:
+            dsnames: [temperature_celsius]
+            eventClass: /HW/Temperature
+            severity: Critical
+            maxval: 'here.upperC'
+          non-recoverable:
+            dsnames: [temperature_celsius]
+            eventClass: /HW/Temperature
+            severity: Critical
+            maxval: 'here.upperNR'
 
         graphs:
           Temperature:
@@ -762,6 +919,7 @@ device_classes:
             graphpoints:
               Temperature:
                 dpName: temperature_celsius
+                includeThresholds: True
 
       # - Fan -------------------------------------------------------------
       Fan:
@@ -771,15 +929,31 @@ device_classes:
           speed:
             type: COMMAND
             parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.ipmitool_sdr
-            commandTemplate: '/usr/bin/sudo -n ipmitool -c -S cache.sdr sdr type fan 2>/dev/null'
+            commandTemplate: '/usr/bin/sudo -n ipmitool -S cache.sdr sdr type fan 2>/dev/null'
             usessh: True
             datapoints:
               rpm:
                 rrdtype: GAUGE
+                aliases:
+                  rpm: NULL
 
         graphs:
           Speed:
             units: RPM
             graphpoints:
-              Temperature:
+              Speed:
                 dpName: speed_rpm
+
+      # - LinuxSWLogicalDisk ----------------------------------------------
+      LinuxSWLogicalDisk:
+        description: Software RAID template for Linux device
+        targetPythonClass: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.LinuxSWLogicalDisk
+        datasources:
+          mdstat:
+            type: COMMAND
+            parser: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.parsers.linux.mdstat
+            commandTemplate: '/bin/cat /proc/mdstat'
+            usessh: True
+            datapoints:
+              status:
+                rrdtype: GAUGE
