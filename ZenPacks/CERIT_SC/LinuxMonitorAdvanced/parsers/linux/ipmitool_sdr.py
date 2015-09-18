@@ -7,4 +7,5 @@ class ipmitool_sdr(ComponentCommandParser):
     scanners = [
         r'\|\s*(?P<celsius>\d+) degrees C\s*$',
         r'\|\s*(?P<rpm>\d+) RPM\s*$',
+        r'\|\s*(?P<percent>[\d\.]+) unspec.*\s*$',
     ]

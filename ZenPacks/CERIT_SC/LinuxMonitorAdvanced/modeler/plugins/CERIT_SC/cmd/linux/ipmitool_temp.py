@@ -4,7 +4,7 @@ from ZenPacks.CERIT_SC.LinuxMonitorAdvanced.lib.IPMISensorsCommandPlugin import 
 class ipmitool_temp(IPMISensorsCommandPlugin):
     maptype = "TemperatureSensorMap"
     #modname = "Products.ZenModel.TemperatureSensor"
-    modname = "ZenPacks.CERIT_SC.LinuxMonitorAdvanced.LinuxTemperatureSensor"
+    modname = "ZenPacks.CERIT_SC.LinuxMonitorAdvanced.IPMITemperatureSensor"
     relname = "temperaturesensors"
     compname = "hw"
     command = '''\

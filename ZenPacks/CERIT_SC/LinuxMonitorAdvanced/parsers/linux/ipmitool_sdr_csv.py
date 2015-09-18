@@ -7,4 +7,5 @@ class ipmitool_sdr_csv(ComponentCommandParser):
     scanners = [
         r'(?P<celsius>\d+),degrees C,(?P<state>.*)$',
         r'(?P<rpm>\d+),RPM,(?P<state>.*)$',
+        r'(?P<percent>[\d\.]+),unspecified,(?P<state>.*)$',
     ]

@@ -20,9 +20,19 @@ fi
 
         for sensor in results.values():
             if (sensor.get('type') == 'Fan') and \
-                    (sensor.get('units') == 'RPM') and \
+                    (sensor.get('units') in ('RPM', 'unspecified')) and \
                     (sensor.get('dataType') == 'analog') and \
                     (sensor.get('name')):
+
+                # with unspecified units we expect percentage
+                if sensor['units'] == 'unspecified':
+                    try:
+                        value = float(sensor.get('value', ''))
+                        if (value <= 0) or (value >= 100):
+                            continue
+                    except ValueError:
+                        continue
+
                 om = self.objectMap()
                 om.id = self.prepId(sensor['name'])
                 om.name = sensor['name']

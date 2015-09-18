@@ -137,7 +137,12 @@ classes:
 
   LinuxTemperatureSensor:
     base: [zenpacklib.Component, Products.ZenModel.TemperatureSensor.TemperatureSensor]
-    monitoring_templates: [LinuxTemperatureSensor]
+    label: Temperature
+    properties: {}
+
+  IPMITemperatureSensor:
+    base: [zenpacklib.Component, Products.ZenModel.TemperatureSensor.TemperatureSensor]
+    monitoring_templates: [IPMITemperatureSensor]
     label: Temperature
     properties:
       entity:
@@ -882,10 +887,10 @@ device_classes:
                 lineType: Line
                 includeThresholds: True
 
-      # - TemperatureSensor -----------------------------------------------
-      LinuxTemperatureSensor:
+      # - IPMITemperatureSensor -------------------------------------------
+      IPMITemperatureSensor:
         description: Temperature sensor template for Linux device
-        targetPythonClass: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.LinuxTemperatureSensor
+        targetPythonClass: ZenPacks.CERIT_SC.LinuxMonitorAdvanced.IPMITemperatureSensor
         datasources:
           temperature:
             type: COMMAND
@@ -936,13 +941,18 @@ device_classes:
                 rrdtype: GAUGE
                 aliases:
                   rpm: NULL
+              percent:
+                rrdtype: GAUGE
+                rrdmin: 0
+                rrdmax: 100
 
         graphs:
           Speed:
-            units: RPM
             graphpoints:
-              Speed:
+              RPM:
                 dpName: speed_rpm
+              Percent:
+                dpName: speed_percent
 
       # - LinuxSWLogicalDisk ----------------------------------------------
       LinuxSWLogicalDisk:
